@@ -34,9 +34,14 @@ def load_pipeline():
 
 
 def predict(text: str, mask_token: str, top_k: int):
-    """Run fill-mask. If no mask is present, append one to predict the next word."""
+    """Run fill-mask. If no mask is present, append one to predict the next word.
+
+    Returns (query, results, auto_masked) where auto_masked is True when we
+    added the mask ourselves (next-word mode) vs. the user placing it.
+    """
     fill_mask, _ = st.session_state["_pipe"]
-    if mask_token not in text:
+    auto_masked = mask_token not in text
+    if auto_masked:
         # Predict the next word: append a mask at the end.
         query = f"{text.rstrip()} {mask_token}"
     else:
@@ -47,7 +52,7 @@ def predict(text: str, mask_token: str, top_k: int):
     # When multiple masks are present, transformers returns a list of lists.
     if results and isinstance(results[0], list):
         results = results[0]
-    return query, results
+    return query, results, auto_masked
 
 
 # --- Sidebar --------------------------------------------------------------
@@ -124,10 +129,16 @@ if go:
         st.warning("Please enter some Saraiki text first.")
     else:
         with st.spinner("Predicting…"):
-            query, results = predict(text, mask_token, top_k)
+            query, results, auto_masked = predict(text, mask_token, top_k)
 
         st.subheader("Predictions")
-        st.caption(f"Query sent to model: `{query}`")
+        if auto_masked:
+            st.caption(
+                f"No `{mask_token}` in your text, so I added one at the end to "
+                f"predict the next word. Query sent to model: `{query}`"
+            )
+        else:
+            st.caption(f"Filling your `{mask_token}`. Query sent to model: `{query}`")
 
         # Raw scores are probabilities over the whole vocabulary, so they look
         # tiny. Normalize across the shown predictions to express relative
