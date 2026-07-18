@@ -67,6 +67,28 @@ with st.sidebar:
     )
 
 
+# --- Global styles: load a Saraiki web font + force RTL rendering ----------
+st.markdown(
+    """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;600;700&display=swap"
+      rel="stylesheet">
+    <style>
+    /* Make the text-area input itself right-to-left */
+    .stTextArea textarea {
+        direction: rtl;
+        text-align: right;
+        font-size: 1.25rem;
+        font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+        line-height: 2.4;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # --- Main -----------------------------------------------------------------
 st.title("✍️ Saraiki Next-Word Prediction")
 st.caption("Fine-tuned RoBERTa • fill-mask • Saraiki (سرائیکی)")
@@ -93,14 +115,6 @@ text = st.text_area(
     help=f"Leave it as-is to predict the next word, or add `{mask_token}` to fill a blank.",
 )
 
-# Render the input right-to-left (Saraiki uses Perso-Arabic script).
-if text.strip():
-    st.markdown(
-        f"<div dir='rtl' style='font-size:1.3rem; padding:0.5rem 0; "
-        f"font-family:\"Noto Nastaliq Urdu\", serif;'>{html.escape(text)}</div>",
-        unsafe_allow_html=True,
-    )
-
 col1, col2 = st.columns([1, 4])
 with col1:
     go = st.button("🔮 Predict", type="primary", use_container_width=True)
@@ -124,22 +138,24 @@ if go:
             token = r["token_str"].strip()
             score = r["score"]
             rel = score / total
-            sequence = r.get("sequence", "").replace("<s>", "").replace("</s>", "").strip()
+
+            # Build the completed sentence ourselves by putting the predicted
+            # word where the mask is (the model's own "sequence" is unreliable).
+            filled = html.escape(query).replace(
+                html.escape(mask_token),
+                f"<span style='background:#fff3b0; color:#000; "
+                f"padding:0 0.2rem; border-radius:0.2rem;'>{html.escape(token)}</span>",
+            )
 
             st.markdown(
-                f"<div dir='rtl' style='font-size:1.15rem; "
-                f"font-family:\"Noto Nastaliq Urdu\", serif;'>"
-                f"<b>{i}.</b> {html.escape(token)} "
-                f"<span style='color:#888; font-size:0.85rem;'>({rel:.1%})</span>"
+                f"<div dir='rtl' style='font-size:1.25rem; padding:0.35rem 0; "
+                f"font-family:\"Noto Nastaliq Urdu\", serif; line-height:2.2;'>"
+                f"<span style='color:#888; font-size:0.85rem;'>{i}. ({rel:.1%})</span>"
+                f"&nbsp;&nbsp; {filled}"
                 f"</div>",
                 unsafe_allow_html=True,
             )
             st.progress(min(max(rel, 0.0), 1.0))
-            with st.expander("Full sentence"):
-                st.markdown(
-                    f"<div dir='rtl' style='font-size:1.1rem;'>{html.escape(sequence)}</div>",
-                    unsafe_allow_html=True,
-                )
 
 st.markdown("---")
 st.caption(
