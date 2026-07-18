@@ -130,8 +130,7 @@ if go:
                 f"<div dir='rtl' style='font-size:1.15rem; "
                 f"font-family:\"Noto Nastaliq Urdu\", serif;'>"
                 f"<b>{i}.</b> {html.escape(token)} "
-                f"<span style='color:#888; font-size:0.85rem;'>"
-                f"({rel:.1%} &nbsp;·&nbsp; raw {score:.2%})</span>"
+                f"<span style='color:#888; font-size:0.85rem;'>({rel:.1%})</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
