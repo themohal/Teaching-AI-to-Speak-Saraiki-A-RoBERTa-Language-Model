@@ -115,20 +115,27 @@ if go:
         st.subheader("Predictions")
         st.caption(f"Query sent to model: `{query}`")
 
+        # Raw scores are probabilities over the whole vocabulary, so they look
+        # tiny. Normalize across the shown predictions to express relative
+        # confidence among these options (sums to ~100%).
+        total = sum(r["score"] for r in results) or 1.0
+
         for i, r in enumerate(results, start=1):
             token = r["token_str"].strip()
             score = r["score"]
+            rel = score / total
             sequence = r.get("sequence", "").replace("<s>", "").replace("</s>", "").strip()
 
             st.markdown(
                 f"<div dir='rtl' style='font-size:1.15rem; "
                 f"font-family:\"Noto Nastaliq Urdu\", serif;'>"
                 f"<b>{i}.</b> {html.escape(token)} "
-                f"<span style='color:#888; font-size:0.85rem;'>({score:.1%})</span>"
+                f"<span style='color:#888; font-size:0.85rem;'>"
+                f"({rel:.1%} &nbsp;·&nbsp; raw {score:.2%})</span>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            st.progress(min(max(score, 0.0), 1.0))
+            st.progress(min(max(rel, 0.0), 1.0))
             with st.expander("Full sentence"):
                 st.markdown(
                     f"<div dir='rtl' style='font-size:1.1rem;'>{html.escape(sequence)}</div>",
